@@ -29,17 +29,16 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
   ];
   late String _sudokuString;
   void _sudokuOlustur() {
-    int gorulecekSayisi = sudokuSeviyeleri[
-        _sudokuKutu.get('seviye', defaultValue: dil['seviye2'])]!;
+    int gorulecekSayisi = sudokuSeviyeleri[_sudokuKutu.get('seviye', defaultValue: dil['seviye2'])]!;
     _sudokuString = sudokular[Random().nextInt(sudokular.length)];
+    _sudokuKutu.put('sudokuString', _sudokuString);
     //618732954925148763347956128839267415571493682462815379784321596153689247296574831
     //ifadeyi 9 erli parçalara bölme
     _sudoku = List.generate(
       9,
       (i) => List.generate(
         9,
-        (j) => int.tryParse(
-            _sudokuString.substring(i * 9, (i + 1) * 9).split('')[j]),
+        (j) => "e${_sudokuString.substring(i * 9, (i + 1) * 9).split('')[j]}",
       ),
     );
     int i = 0;
@@ -47,13 +46,15 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
     while (i < 81 - gorulecekSayisi) {
       int x = Random().nextInt(9);
       int y = Random().nextInt(9);
-      if (_sudoku[x][y] != 0) {
+      if (_sudoku[x][y] != '0') {
         print(_sudoku[x][y]);
-        _sudoku[x][y] = 0;
+        _sudoku[x][y] = '0';
         i++;
       }
     }
-
+    _sudokuKutu.put('sudokuRows', _sudoku);
+    _sudokuKutu.put('xy', '99');
+    _sudokuKutu.put('ipucu', 3);
     print(_sudokuString);
     print(gorulecekSayisi);
   }
@@ -78,46 +79,69 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
             ),
             AspectRatio(
               aspectRatio: 1, //AspectRatio oranı korur, tam kare yaptık
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                margin: const EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    for (int x = 0; x < 9; x++)
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  for (int y = 0; y < 9; y++)
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Container(
-                                              margin: const EdgeInsets.all(1),
-                                              color: Colors.blue,
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                _sudoku[x][y].toString(),
+              child: ValueListenableBuilder<Box>(
+                valueListenable: _sudokuKutu.listenable(keys: ['xy', 'sudokuRows']),
+                builder: (context, box, widget) {
+                  String xy = box.get('xy');
+                  int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
+                  List sudokuRows = box.get('sudokuRows');
+                  return Container(
+                    padding: const EdgeInsets.all(2),
+                    margin: const EdgeInsets.all(8),
+                    child: Column(
+                      children: [
+                        for (int x = 0; x < 9; x++)
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      for (int y = 0; y < 9; y++)
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Container(
+                                                  margin: const EdgeInsets.all(1),
+                                                  color: xC == x && yC == y
+                                                      ? Colors.green
+                                                      : Colors.blue.withOpacity(xC == x || yC == y ? 0.4 : 1),
+                                                  alignment: Alignment.center,
+                                                  child: '${sudokuRows[x][y]}'.startsWith('e')
+                                                      ? Text(
+                                                          '${sudokuRows[x][y]}'.substring(1),
+                                                          style: const TextStyle(
+                                                              fontWeight: FontWeight.bold, fontSize: 20),
+                                                        )
+                                                      : InkWell(
+                                                          onTap: () {
+                                                            print('$x$y');
+                                                            _sudokuKutu.put('xy', '$x$y');
+                                                          },
+                                                          child: Center(
+                                                            child: Text(
+                                                              sudokuRows[x][y] != '0' ? sudokuRows[x][y] : '',
+                                                            ),
+                                                          ),
+                                                        ),
+                                                ),
                                               ),
-                                            ),
+                                              if (y == 2 || y == 5) const SizedBox(width: 2),
+                                            ],
                                           ),
-                                          if (y == 2 || y == 5)
-                                            const SizedBox(width: 2),
-                                        ],
-                                      ),
-                                    ),
-                                ],
-                              ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (x == 2 || x == 5) const SizedBox(height: 2),
+                              ],
                             ),
-                            if (x == 2 || x == 5) const SizedBox(height: 2),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 8),
@@ -132,22 +156,83 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                             children: [
                               Expanded(
                                 child: Card(
+                                  margin: const EdgeInsets.all(8),
                                   color: Colors.amber,
-                                  child: Container(
-                                    margin: const EdgeInsets.all(3),
-                                    color: Colors.amber,
+                                  child: InkWell(
+                                    onTap: () {
+                                      String xy = _sudokuKutu.get('xy');
+
+                                      if (xy != '99') {
+                                        int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
+                                        _sudoku[xC][yC] = '0';
+                                        _sudokuKutu.put('sudokuRows', _sudoku);
+                                      }
+                                    },
+                                    child: const Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.black),
+                                        Text(
+                                          'Sil',
+                                          style: TextStyle(color: Colors.black),
+                                        )
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                               Expanded(
-                                child: Card(
-                                  color: Colors.amber,
-                                  child: Container(
-                                    margin: const EdgeInsets.all(3),
-                                    color: Colors.amber,
-                                  ),
-                                ),
-                              )
+                                child: ValueListenableBuilder<Box>(
+                                    valueListenable: _sudokuKutu.listenable(keys: ['ipucu']),
+                                    builder: (context, box, widget) {
+                                      return Card(
+                                        margin: const EdgeInsets.all(8),
+                                        color: Colors.amber,
+                                        child: InkWell(
+                                          onTap: () {
+                                            String xy = box.get('xy');
+
+                                            if (xy != '99' && box.get('ipucu') > 0) {
+                                              int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
+                                              String cozumString = box.get('sudokuString');
+
+                                              List cozumSudoku = List.generate(
+                                                9,
+                                                (i) => List.generate(
+                                                  9,
+                                                  (j) => cozumString.substring(i * 9, (i + 1) * 9).split('')[j],
+                                                ),
+                                              );
+                                              if (_sudoku[xC][yC] != cozumSudoku[xC][yC]) {
+                                                _sudoku[xC][yC] = cozumSudoku[xC][yC];
+                                                box.put('sudokuRows', _sudoku);
+                                                box.put('ipucu', box.get('ipucu') - 1);
+                                              }
+                                            }
+                                          },
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  const Icon(Icons.lightbulb, color: Colors.black),
+                                                  Text(
+                                                    ' : ${box.get('ipucu')}',
+                                                    style: const TextStyle(color: Colors.black),
+                                                  ),
+                                                ],
+                                              ),
+                                              const Text(
+                                                'İpucu',
+                                                style: TextStyle(color: Colors.black),
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                              ),
                             ],
                           ),
                         ),
@@ -156,10 +241,27 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                             children: [
                               Expanded(
                                 child: Card(
+                                  margin: const EdgeInsets.all(8),
                                   color: Colors.amber,
-                                  child: Container(
-                                    margin: const EdgeInsets.all(3),
-                                    color: Colors.amber,
+                                  child: InkWell(
+                                    onTap: () {
+                                      String xy = _sudokuKutu.get('xy');
+                                      if (xy != '99') {
+                                        int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
+                                        _sudoku[xC][yC] = '0';
+                                        _sudokuKutu.put('sudokuRows', _sudoku);
+                                      }
+                                    },
+                                    child: const Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.black),
+                                        Text(
+                                          'Sil',
+                                          style: TextStyle(color: Colors.black),
+                                        )
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -190,7 +292,14 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                     child: InkWell(
                                       highlightColor: Colors.transparent,
                                       splashColor: Colors.transparent,
-                                      onTap: () {},
+                                      onTap: () {
+                                        String xy = _sudokuKutu.get('xy');
+                                        if (xy != '99') {
+                                          int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
+                                          _sudoku[xC][yC] = '${i + j}';
+                                          _sudokuKutu.put('sudokuRows', _sudoku);
+                                        }
+                                      },
                                       child: Card(
                                         shape: const CircleBorder(),
                                         color: Colors.amber,
