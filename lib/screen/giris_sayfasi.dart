@@ -21,54 +21,63 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(dil['giris_title']),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Box kutu = Hive.box('ayarlar');
-              Hive.box('ayarlar').put('karanlik_tema',
-                  !kutu.get('karanlik_tema', defaultValue: false));
-            },
-            icon: const Icon(Icons.settings),
-          ),
-          PopupMenuButton(
-            onSelected: (deger) {
-              if (_sudokuKutu.isOpen) {
-                _sudokuKutu.put('seviye', deger);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SuDokuSayfasi()),
-                );
-              }
-            },
-            itemBuilder: (context) {
-              return <PopupMenuEntry>[
-                PopupMenuItem(
-                  value: dil['seviye_secim'],
-                  textStyle: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyText1!.color,
-                  ),
-                  enabled: false,
-                  child: Text(dil['seviye_secim']),
+    return FutureBuilder<Box>(
+      future: _kutuAc(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(dil['giris_title']),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    Box kutu = Hive.box('ayarlar');
+                    Hive.box('ayarlar').put('karanlik_tema', !kutu.get('karanlik_tema', defaultValue: false));
+                  },
+                  icon: const Icon(Icons.settings),
                 ),
-                for (String k in sudokuSeviyeleri.keys)
-                  PopupMenuItem(
-                    value: k,
-                    child: Text(k),
-                  )
-              ];
-            },
-          )
-        ],
-      ),
-      body: FutureBuilder<Box>(
-        future: _kutuAc(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return Center(
+                if (_sudokuKutu.get('sudokuRows') != null)
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SuDokuSayfasi()),
+                      );
+                    },
+                    icon: const Icon(Icons.play_circle),
+                  ),
+                PopupMenuButton(
+                  onSelected: (deger) {
+                    if (_sudokuKutu.isOpen) {
+                      _sudokuKutu.put('seviye', deger);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SuDokuSayfasi()),
+                      );
+                    }
+                  },
+                  itemBuilder: (context) {
+                    return <PopupMenuEntry>[
+                      PopupMenuItem(
+                        value: dil['seviye_secim'],
+                        textStyle: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyText1!.color,
+                        ),
+                        enabled: false,
+                        child: Text(dil['seviye_secim']),
+                      ),
+                      for (String k in sudokuSeviyeleri.keys)
+                        PopupMenuItem(
+                          value: k,
+                          child: Text(k),
+                        )
+                    ];
+                  },
+                )
+              ],
+            ),
+            body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -78,15 +87,14 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.lobster(fontSize: 18),
                     ),
-                  for (var eleman in snapshot.data!.values)
-                    Center(child: Text('$eleman'))
+                  for (var eleman in snapshot.data!.values) Center(child: Text('$eleman'))
                 ],
               ),
-            );
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
-      ),
+            ),
+          );
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
     );
   }
 }

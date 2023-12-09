@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ class SuDokuSayfasi extends StatefulWidget {
 
 class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
   final Box _sudokuKutu = Hive.box('sudoku');
+  late Timer _sayac;
   List _sudoku = [], _sudokuHistory = [];
   final List<List<int>> ornekSoru = [
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -56,6 +59,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
     _sudokuKutu.put('sudokuRows', _sudoku);
     _sudokuKutu.put('xy', '99');
     _sudokuKutu.put('ipucu', 3);
+    _sudokuKutu.put('sure', 0);
     print(_sudokuString);
     print(gorulecekSayisi);
   }
@@ -66,7 +70,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
       'xy': _sudokuKutu.get('xy'),
       'ipucu': _sudokuKutu.get('ipucu'),
     };
-    _sudokuHistory.add(historyItem);
+    _sudokuHistory.add(jsonEncode(historyItem));
 
     _sudokuKutu.put('_sudokuHistory', _sudokuHistory);
   }
@@ -74,7 +78,17 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
   @override
   void initState() {
     super.initState();
-    _sudokuOlustur();
+    if (_sudokuKutu.get('sudokuRows') == null) _sudokuOlustur();
+    _sayac = Timer.periodic(const Duration(seconds: 1), (timer) {
+      int sure = _sudokuKutu.get('sure');
+      _sudokuKutu.put('sure', ++sure);
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_sayac != null && _sayac.isActive) _sayac.cancel();
+    super.dispose();
   }
 
   @override
@@ -82,6 +96,21 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
     return Scaffold(
       appBar: AppBar(
         title: Text(dil['sudoku_title']),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(
+                child: ValueListenableBuilder<Box>(
+                    valueListenable: _sudokuKutu.listenable(keys: ['sure']),
+                    builder: (context, box, _) {
+                      String sure = Duration(seconds: box.get('sure')).toString();
+                      return Text(
+                        sure.split('.').first,
+                        style: const TextStyle(fontSize: 20),
+                      );
+                    })),
+          ),
+        ],
       ),
       body: Center(
         child: Column(
@@ -313,7 +342,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                     onTap: () {
                                       if (_sudokuHistory.length > 1) {
                                         _sudokuHistory.removeLast();
-                                        Map onceki = _sudokuHistory.last;
+                                        Map onceki = jsonDecode(_sudokuHistory.last);
                                         /* Map historyItem = {
                                           'sudokuRows': _sudokuKutu.get('sudokuRows'),
                                           'xy': _sudokuKutu.get('xy'),
@@ -332,7 +361,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                         Text(
                                           'Geri Al',
                                           style: TextStyle(color: Colors.black),
-                                        )
+                                        ),
                                       ],
                                     ),
                                   ),
