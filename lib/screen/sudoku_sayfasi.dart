@@ -27,6 +27,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
   ];
+  bool _note = false;
   late String _sudokuString;
   void _sudokuOlustur() {
     int gorulecekSayisi = sudokuSeviyeleri[_sudokuKutu.get('seviye', defaultValue: dil['seviye2'])]!;
@@ -112,7 +113,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                                       ? Text(
                                                           '${sudokuRows[x][y]}'.substring(1),
                                                           style: const TextStyle(
-                                                              fontWeight: FontWeight.bold, fontSize: 20),
+                                                              fontWeight: FontWeight.bold, fontSize: 22),
                                                         )
                                                       : InkWell(
                                                           onTap: () {
@@ -120,9 +121,34 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                                             _sudokuKutu.put('xy', '$x$y');
                                                           },
                                                           child: Center(
-                                                            child: Text(
-                                                              sudokuRows[x][y] != '0' ? sudokuRows[x][y] : '',
-                                                            ),
+                                                            child: '${sudokuRows[x][y]}'.length > 8
+                                                                ? Column(
+                                                                    children: [
+                                                                      for (int i = 0; i < 9; i += 3)
+                                                                        Expanded(
+                                                                          child: Row(
+                                                                            children: [
+                                                                              for (int j = 0; j < 3; j++)
+                                                                                Expanded(
+                                                                                    child: Center(
+                                                                                  child: Text(
+                                                                                    '${sudokuRows[x][y]}'
+                                                                                        .split('')[i + j],
+                                                                                    style:
+                                                                                        const TextStyle(fontSize: 10),
+                                                                                  ),
+                                                                                ))
+                                                                            ],
+                                                                          ),
+                                                                        )
+                                                                    ],
+                                                                  )
+                                                                : Text(
+                                                                    sudokuRows[x][y] != '0' ? sudokuRows[x][y] : '',
+                                                                    style: const TextStyle(
+                                                                      fontSize: 20,
+                                                                    ),
+                                                                  ),
                                                           ),
                                                         ),
                                                 ),
@@ -242,22 +268,19 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                               Expanded(
                                 child: Card(
                                   margin: const EdgeInsets.all(8),
-                                  color: Colors.amber,
+                                  color: _note ? Colors.amber.withOpacity(0.4) : Colors.amber,
                                   child: InkWell(
                                     onTap: () {
-                                      String xy = _sudokuKutu.get('xy');
-                                      if (xy != '99') {
-                                        int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
-                                        _sudoku[xC][yC] = '0';
-                                        _sudokuKutu.put('sudokuRows', _sudoku);
-                                      }
+                                      setState(() {
+                                        _note = !_note;
+                                      });
                                     },
                                     child: const Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.delete, color: Colors.black),
+                                        Icon(Icons.note_add, color: Colors.black),
                                         Text(
-                                          'Sil',
+                                          'Not',
                                           style: TextStyle(color: Colors.black),
                                         )
                                       ],
@@ -294,9 +317,16 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                       splashColor: Colors.transparent,
                                       onTap: () {
                                         String xy = _sudokuKutu.get('xy');
+
                                         if (xy != '99') {
                                           int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
-                                          _sudoku[xC][yC] = '${i + j}';
+                                          if (!_note) {
+                                            _sudoku[xC][yC] = '${i + j}';
+                                          } else {
+                                            if ('${_sudoku[xC][yC]}'.length < 8) _sudoku[xC][yC] = '000000000';
+                                            _sudoku[xC][yC] =
+                                                '${_sudoku[xC][yC]}'.replaceRange(i + j - 1, i + j, '${i + j}');
+                                          }
                                           _sudokuKutu.put('sudokuRows', _sudoku);
                                         }
                                       },
