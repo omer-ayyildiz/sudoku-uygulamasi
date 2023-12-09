@@ -15,7 +15,7 @@ class SuDokuSayfasi extends StatefulWidget {
 
 class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
   final Box _sudokuKutu = Hive.box('sudoku');
-  List _sudoku = [];
+  List _sudoku = [], _sudokuHistory = [];
   final List<List<int>> ornekSoru = [
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
     [1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -58,6 +58,17 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
     _sudokuKutu.put('ipucu', 3);
     print(_sudokuString);
     print(gorulecekSayisi);
+  }
+
+  void _adimKaydet() {
+    Map historyItem = {
+      'sudokuRows': _sudokuKutu.get('sudokuRows'),
+      'xy': _sudokuKutu.get('xy'),
+      'ipucu': _sudokuKutu.get('ipucu'),
+    };
+    _sudokuHistory.add(historyItem);
+
+    _sudokuKutu.put('_sudokuHistory', _sudokuHistory);
   }
 
   @override
@@ -133,7 +144,11 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                                                                     child: Center(
                                                                                   child: Text(
                                                                                     '${sudokuRows[x][y]}'
-                                                                                        .split('')[i + j],
+                                                                                                .split('')[i + j] ==
+                                                                                            '0'
+                                                                                        ? ''
+                                                                                        : '${sudokuRows[x][y]}'
+                                                                                            .split('')[i + j],
                                                                                     style:
                                                                                         const TextStyle(fontSize: 10),
                                                                                   ),
@@ -192,6 +207,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                         int xC = int.parse(xy.substring(0, 1)), yC = int.parse(xy.substring(1));
                                         _sudoku[xC][yC] = '0';
                                         _sudokuKutu.put('sudokuRows', _sudoku);
+                                        _adimKaydet();
                                       }
                                     },
                                     child: const Column(
@@ -233,6 +249,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                                 _sudoku[xC][yC] = cozumSudoku[xC][yC];
                                                 box.put('sudokuRows', _sudoku);
                                                 box.put('ipucu', box.get('ipucu') - 1);
+                                                _adimKaydet();
                                               }
                                             }
                                           },
@@ -290,13 +307,37 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                               ),
                               Expanded(
                                 child: Card(
+                                  margin: const EdgeInsets.all(8),
                                   color: Colors.amber,
-                                  child: Container(
-                                    margin: const EdgeInsets.all(3),
-                                    color: Colors.amber,
+                                  child: InkWell(
+                                    onTap: () {
+                                      if (_sudokuHistory.length > 1) {
+                                        _sudokuHistory.removeLast();
+                                        Map onceki = _sudokuHistory.last;
+                                        /* Map historyItem = {
+                                          'sudokuRows': _sudokuKutu.get('sudokuRows'),
+                                          'xy': _sudokuKutu.get('xy'),
+                                          'ipucu': _sudokuKutu.get('ipucu'),
+                                        };*/
+                                        _sudokuKutu.put('sudokuRows', onceki['sudokuRows']);
+                                        _sudokuKutu.put('xy', onceki['xy']);
+                                        _sudokuKutu.put('ipucu', onceki['ipucu']);
+                                        _sudokuKutu.put('_sudokuHistory', _sudokuHistory);
+                                      }
+                                    },
+                                    child: const Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.undo, color: Colors.black),
+                                        Text(
+                                          'Geri Al',
+                                          style: TextStyle(color: Colors.black),
+                                        )
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         ),
@@ -324,10 +365,18 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
                                             _sudoku[xC][yC] = '${i + j}';
                                           } else {
                                             if ('${_sudoku[xC][yC]}'.length < 8) _sudoku[xC][yC] = '000000000';
-                                            _sudoku[xC][yC] =
-                                                '${_sudoku[xC][yC]}'.replaceRange(i + j - 1, i + j, '${i + j}');
+
+                                            _sudoku[xC][yC] = '${_sudoku[xC][yC]}'.replaceRange(
+                                              i + j - 1,
+                                              i + j,
+                                              _sudoku[xC][yC] =
+                                                  '${_sudoku[xC][yC]}'.substring(i + j - 1, i + j) == '${i + j}'
+                                                      ? '0'
+                                                      : '${i + j}',
+                                            );
                                           }
                                           _sudokuKutu.put('sudokuRows', _sudoku);
+                                          _adimKaydet();
                                         }
                                       },
                                       child: Card(
