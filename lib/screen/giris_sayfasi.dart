@@ -84,10 +84,14 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                   return Column(
                     children: [
                       if (box.length == 0)
-                        Text(
-                          dil['tamamlanan_yok'],
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.lobster(fontSize: 18),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              dil['tamamlanan_yok'],
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.lobster(fontSize: 18),
+                            ),
+                          ),
                         ),
                       for (Map eleman in box.values.toList().reversed.take(30))
                         ListTile(
