@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:su_doku_uygulamasi/constants/dil.dart';
 import 'package:su_doku_uygulamasi/constants/sabitler.dart';
 import 'package:su_doku_uygulamasi/constants/sudokular.dart';
+import 'package:wakelock/wakelock.dart';
 
 class SuDokuSayfasi extends StatefulWidget {
   const SuDokuSayfasi({super.key});
@@ -65,20 +67,50 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
   }
 
   void _adimKaydet() {
-    Map historyItem = {
-      'sudokuRows': _sudokuKutu.get('sudokuRows'),
-      'xy': _sudokuKutu.get('xy'),
-      'ipucu': _sudokuKutu.get('ipucu'),
-    };
-    _sudokuHistory.add(jsonEncode(historyItem));
+    String sudoSonDurum = _sudokuKutu.get('sudokuRows').toString();
+    if (sudoSonDurum.contains('0')) {
+      Map historyItem = {
+        'sudokuRows': _sudokuKutu.get('sudokuRows'),
+        'xy': _sudokuKutu.get('xy'),
+        'ipucu': _sudokuKutu.get('ipucu'),
+      };
+      _sudokuHistory.add(jsonEncode(historyItem));
 
-    _sudokuKutu.put('_sudokuHistory', _sudokuHistory);
+      _sudokuKutu.put('_sudokuHistory', _sudokuHistory);
+    } else {
+      _sudokuString = _sudokuKutu.get('sudokuString');
+      String kontrol = sudoSonDurum.replaceAll(RegExp(r'[e, \][]'), '');
+      String mesaj = 'Sudokunuzda yanlışlar var. Dikkatli bir şekilde tekrar inceleyiniz.';
+      if (kontrol == _sudokuString) {
+        mesaj = 'Tebrikler sudokuyu başarıyla bitirdiniz';
+        Box tamamlananKutusu = Hive.box('tamamlanan_sudoku');
+        Map tamamlananSudoku = {
+          'tarih': DateTime.now,
+          'cozulmus': _sudokuKutu.get('sudokuRows'),
+          'sure': _sudokuKutu.get('sure'),
+          '_sudokuHistory': _sudokuKutu.get('_sudokuHistory'),
+        };
+        tamamlananKutusu.add(tamamlananSudoku);
+        _sudokuKutu.put('sudokuRows', null);
+        Navigator.pop(context);
+      }
+      Fluttertoast.showToast(
+        msg: mesaj,
+        toastLength: Toast.LENGTH_LONG,
+        timeInSecForIosWeb: 3,
+      );
+    }
   }
 
   @override
   void initState() {
     super.initState();
-    if (_sudokuKutu.get('sudokuRows') == null) _sudokuOlustur();
+    Wakelock.enable();
+    if (_sudokuKutu.get('sudokuRows') == null) {
+      _sudokuOlustur();
+    } else {
+      _sudoku = _sudokuKutu.get('sudokuRows');
+    }
     _sayac = Timer.periodic(const Duration(seconds: 1), (timer) {
       int sure = _sudokuKutu.get('sure');
       _sudokuKutu.put('sure', ++sure);
@@ -88,6 +120,7 @@ class _SuDokuSayfasiState extends State<SuDokuSayfasi> {
   @override
   void dispose() {
     if (_sayac != null && _sayac.isActive) _sayac.cancel();
+    Wakelock.disable();
     super.dispose();
   }
 

@@ -50,6 +50,7 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                   onSelected: (deger) {
                     if (_sudokuKutu.isOpen) {
                       _sudokuKutu.put('seviye', deger);
+                      _sudokuKutu.put('sudokuRows', null);
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const SuDokuSayfasi()),
@@ -77,20 +78,26 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                 )
               ],
             ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (snapshot.data!.length == 0)
-                    Text(
-                      dil['tamamlanan_yok'],
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.lobster(fontSize: 18),
-                    ),
-                  for (var eleman in snapshot.data!.values) Center(child: Text('$eleman'))
-                ],
-              ),
-            ),
+            body: ValueListenableBuilder<Box>(
+                valueListenable: snapshot.data!.listenable(),
+                builder: (context, box, _) {
+                  return Column(
+                    children: [
+                      if (box.length == 0)
+                        Text(
+                          dil['tamamlanan_yok'],
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.lobster(fontSize: 18),
+                        ),
+                      for (Map eleman in box.values.toList().reversed.take(30))
+                        ListTile(
+                          onTap: () {},
+                          title: Text('${eleman['tarih']}'),
+                          subtitle: Text('${Duration(seconds: eleman['sure'])}'.split('.').first),
+                        )
+                    ],
+                  );
+                }),
           );
         }
         return const Center(child: CircularProgressIndicator());

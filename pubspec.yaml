@@ -41,6 +41,8 @@ dependencies:
   hive_flutter: ^1.1.0
   build_runner: ^2.4.7
   google_fonts: ^6.1.0
+  wakelock: ^0.6.2 
+  fluttertoast: ^8.2.4
 
 dev_dependencies:
   flutter_test:
